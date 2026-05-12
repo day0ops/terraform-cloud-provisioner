@@ -39,7 +39,7 @@ locals {
       value               = local.tags[key]
       propagate_at_launch = "true"
   }])
-  service_cidr = aws_eks_cluster.eks_master.0.kubernetes_network_config.0.service_ipv4_cidr
+  service_cidr      = aws_eks_cluster.eks_master.0.kubernetes_network_config.0.service_ipv4_cidr
   nodeadm_user_data = <<-EOT
 #!/bin/bash
 set -ex
@@ -363,10 +363,10 @@ resource "aws_launch_template" "eks_worker_lt" {
 resource "aws_autoscaling_group" "eks_worker_asg" {
   count = local.count
 
-  name             = local.cluster_name
-  desired_capacity = var.eks_nodes
-  max_size         = var.eks_max_nodes
-  min_size         = var.eks_min_nodes
+  name                = local.cluster_name
+  desired_capacity    = var.eks_nodes
+  max_size            = var.eks_max_nodes
+  min_size            = var.eks_min_nodes
   vpc_zone_identifier = aws_subnet.eks_public_subnet.*.id
 
   launch_template {
