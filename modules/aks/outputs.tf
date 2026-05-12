@@ -1,6 +1,6 @@
 # Kubernetes cluster name
 output "k8s_cluster_name" {
-  value = "${local.cluster_name}"
+  value = local.cluster_name
 }
 
 # Kubernetes master version

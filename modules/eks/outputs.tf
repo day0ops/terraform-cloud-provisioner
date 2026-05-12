@@ -1,11 +1,11 @@
 # Kubernetes cluster name
 output "k8s_cluster_name" {
-  value = "${local.cluster_name}"
+  value = local.cluster_name
 }
 
 # Kubernetes master version
 output "k8s_master_version" {
-  value = "${local.k8s_version}"
+  value = local.k8s_version
 }
 
 # Kubeconfig path

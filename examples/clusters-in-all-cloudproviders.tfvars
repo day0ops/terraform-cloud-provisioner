@@ -15,25 +15,25 @@ gke_node_type      = "e2-standard-4"
 # EKS
 # ----------------------------------------------------------------------------------
 
-aws_profile        = "default"
-eks_region         = "ap-southeast-2"
-eks_cluster_name   = "demo"
-eks_cluster_count  = 1
-eks_node_type      = "t3.medium"
-eks_nodes          = 2
-eks_min_nodes      = 1
-eks_max_nodes      = 3
-eks_subnets        = 2
+aws_profile       = "default"
+eks_region        = "ap-southeast-2"
+eks_cluster_name  = "demo"
+eks_cluster_count = 1
+eks_node_type     = "t3.medium"
+eks_nodes         = 2
+eks_min_nodes     = 1
+eks_max_nodes     = 3
+eks_subnets       = 2
 
 # ----------------------------------------------------------------------------------
 # AKS
 # ----------------------------------------------------------------------------------
 
-aks_region         = "Australia East"
-aks_cluster_name   = "demo"
-aks_cluster_count  = 1
-aks_node_type      = "Standard_D2_v2"
-aks_nodes          = 2
+aks_region        = "Australia East"
+aks_cluster_name  = "demo"
+aks_cluster_count = 1
+aks_node_type     = "Standard_D2_v2"
+aks_nodes         = 2
 # aks_enable_nodes_auto_scaling = false
 # aks_min_nodes                 = null
 # aks_max_nodes                 = null
