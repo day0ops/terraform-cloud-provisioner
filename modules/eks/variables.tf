@@ -109,20 +109,3 @@ variable "enable_dns" {
   default     = false
 }
 
-variable "dns_parent_zone_id" {
-  description = "Route53 parent hosted zone ID"
-  type        = string
-  default     = null
-}
-
-variable "dns_parent_domain" {
-  description = "Parent domain (e.g., kasunt.apac.fe.solo.io)"
-  type        = string
-  default     = null
-}
-
-variable "dns_child_zone_name" {
-  description = "Child zone subdomain (e.g., demo)"
-  type        = string
-  default     = null
-}

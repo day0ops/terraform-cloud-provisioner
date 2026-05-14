@@ -460,24 +460,7 @@ resource "null_resource" "aws_auth_configmap_apply" {
 # -- Route53
 
 locals {
-  dns_enabled      = var.enable_dns && local.count > 0
-  dns_child_domain = local.dns_enabled ? "${var.dns_child_zone_name}.${var.dns_parent_domain}" : ""
-}
-
-resource "aws_route53_zone" "child" {
-  count         = local.dns_enabled ? 1 : 0
-  name          = local.dns_child_domain
-  force_destroy = true
-  tags          = local.tags
-}
-
-resource "aws_route53_record" "child_ns" {
-  count   = local.dns_enabled ? 1 : 0
-  zone_id = var.dns_parent_zone_id
-  name    = local.dns_child_domain
-  type    = "NS"
-  ttl     = 300
-  records = aws_route53_zone.child[0].name_servers
+  dns_enabled = var.enable_dns && local.count > 0
 }
 
 resource "aws_iam_policy" "eks_worker_route53_policy" {

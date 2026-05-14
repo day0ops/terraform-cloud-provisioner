@@ -2,6 +2,34 @@ module "defaults" {
   source = "../../modules/defaults"
 }
 
+locals {
+  dns_enabled      = var.enable_dns
+  dns_child_domain = local.dns_enabled ? "${var.dns_child_zone_name}.${var.dns_parent_domain}" : ""
+}
+
+# One shared child zone for the entire environment (not per-cluster)
+resource "aws_route53_zone" "child" {
+  count         = local.dns_enabled ? 1 : 0
+  name          = local.dns_child_domain
+  force_destroy = true
+  tags = {
+    "managed-by" = "terraform"
+    "created-by" = var.owner
+    "team"       = var.team
+    "purpose"    = var.purpose
+    "provider"   = "eks"
+  }
+}
+
+resource "aws_route53_record" "child_ns" {
+  count   = local.dns_enabled ? 1 : 0
+  zone_id = var.dns_parent_zone_id
+  name    = local.dns_child_domain
+  type    = "NS"
+  ttl     = 300
+  records = aws_route53_zone.child[0].name_servers
+}
+
 module "eks" {
   source = "../../modules/eks"
   count  = var.eks_cluster_count
@@ -22,8 +50,5 @@ module "eks" {
   team    = var.team
   purpose = var.purpose
 
-  enable_dns          = var.enable_dns
-  dns_parent_zone_id  = var.dns_parent_zone_id
-  dns_parent_domain   = var.dns_parent_domain
-  dns_child_zone_name = var.dns_child_zone_name
+  enable_dns = var.enable_dns
 }
