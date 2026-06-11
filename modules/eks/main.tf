@@ -110,12 +110,48 @@ resource "aws_subnet" "eks_public_subnet" {
   )
 }
 
+resource "aws_subnet" "eks_private_subnet" {
+  count = var.enable_eks ? var.eks_subnets : 0
+
+  availability_zone       = data.aws_availability_zones.eks_available_zones.0.names[count.index]
+  cidr_block              = cidrsubnet(var.eks_cidr_block, 8, count.index + var.eks_subnets)
+  vpc_id                  = aws_vpc.eks_vpc.0.id
+  map_public_ip_on_launch = false
+
+  tags = merge(
+    {
+      "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    },
+    {
+      "kubernetes.io/role/internal-elb" = "1"
+    },
+    local.tags
+  )
+}
+
 resource "aws_internet_gateway" "eks_igw" {
   count = local.count
 
   vpc_id = aws_vpc.eks_vpc.0.id
 
   tags = local.tags
+}
+
+resource "aws_eip" "eks_nat_eip" {
+  count  = local.count
+  domain = "vpc"
+  tags   = local.tags
+
+  depends_on = [aws_internet_gateway.eks_igw]
+}
+
+resource "aws_nat_gateway" "eks_nat_gw" {
+  count         = local.count
+  allocation_id = aws_eip.eks_nat_eip.0.id
+  subnet_id     = aws_subnet.eks_public_subnet.0.id
+  tags          = local.tags
+
+  depends_on = [aws_internet_gateway.eks_igw]
 }
 
 resource "aws_route_table" "eks_rt" {
@@ -136,6 +172,25 @@ resource "aws_route_table_association" "eks_rt_assoc" {
 
   subnet_id      = aws_subnet.eks_public_subnet.*.id[count.index]
   route_table_id = aws_route_table.eks_rt.0.id
+}
+
+resource "aws_route_table" "eks_private_rt" {
+  count  = local.count
+  vpc_id = aws_vpc.eks_vpc.0.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.eks_nat_gw.0.id
+  }
+
+  tags = local.tags
+}
+
+resource "aws_route_table_association" "eks_private_rt_assoc" {
+  count = var.enable_eks ? var.eks_subnets : 0
+
+  subnet_id      = aws_subnet.eks_private_subnet.*.id[count.index]
+  route_table_id = aws_route_table.eks_private_rt.0.id
 }
 
 resource "aws_iam_role" "eks_master_iam_role" {
@@ -325,6 +380,20 @@ resource "aws_security_group_rule" "eks_worker_sec_group_rule_allow_pods_to_k8_a
   source_security_group_id = aws_security_group.eks_worker_sec_group.0.id
   to_port                  = 443
   type                     = "ingress"
+}
+
+resource "aws_security_group_rule" "eks_worker_allow_private_subnets" {
+  count       = local.count
+  description = "Allow inbound traffic from private subnets (AgentCore gateway)"
+  from_port   = 0
+  to_port     = 65535
+  protocol    = "tcp"
+  cidr_blocks = [
+    for i in range(var.eks_subnets) :
+    cidrsubnet(var.eks_cidr_block, 8, i + var.eks_subnets)
+  ]
+  security_group_id = aws_security_group.eks_worker_sec_group.0.id
+  type              = "ingress"
 }
 
 resource "aws_launch_template" "eks_worker_lt" {
