@@ -18,3 +18,17 @@ output "kubeconfig_context" {
   value = local.kubeconfig_context
 }
 
+output "vpc_id" {
+  value       = try(aws_vpc.eks_vpc[0].id, null)
+  description = "VPC ID for the EKS cluster"
+}
+
+output "private_subnet_ids" {
+  value       = try(aws_subnet.eks_private_subnet[*].id, [])
+  description = "Private subnet IDs for AgentCore gateway placement"
+}
+
+output "worker_security_group_id" {
+  value       = try(aws_security_group.eks_worker_sec_group[0].id, null)
+  description = "Worker node security group ID"
+}

@@ -27,3 +27,18 @@ output "eks_dns_nameservers" {
   value       = try(aws_route53_zone.child[0].name_servers, [])
   description = "Nameservers for the child hosted zone"
 }
+
+output "eks_vpc_ids" {
+  value       = [for m in module.eks[*] : m.vpc_id]
+  description = "VPC IDs for all EKS clusters"
+}
+
+output "eks_private_subnet_ids" {
+  value       = [for m in module.eks[*] : m.private_subnet_ids]
+  description = "Private subnet IDs per EKS cluster (list of lists)"
+}
+
+output "eks_worker_security_group_ids" {
+  value       = [for m in module.eks[*] : m.worker_security_group_id]
+  description = "Worker security group IDs for all EKS clusters"
+}

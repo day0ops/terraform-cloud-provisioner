@@ -42,3 +42,18 @@ output "gke_cluster_name" {
   value       = [for c in module.gke[*].k8s_cluster_name : c]
   description = "GKE cluster names"
 }
+
+output "eks_vpc_ids" {
+  value       = [for m in module.eks[*] : m.vpc_id]
+  description = "VPC IDs for all EKS clusters"
+}
+
+output "eks_private_subnet_ids" {
+  value       = [for m in module.eks[*] : m.private_subnet_ids]
+  description = "Private subnet IDs per EKS cluster (list of lists)"
+}
+
+output "eks_worker_security_group_ids" {
+  value       = [for m in module.eks[*] : m.worker_security_group_id]
+  description = "Worker security group IDs for all EKS clusters"
+}
