@@ -52,3 +52,25 @@ module "eks" {
 
   enable_dns = var.enable_dns
 }
+
+# ----------------------------------------------------------------------------------
+# VM workload – attaches to the first cluster's VPC
+# ----------------------------------------------------------------------------------
+
+module "vm_workload" {
+  source = "../../modules/vm-workload"
+  count  = var.enable_vm ? 1 : 0
+
+  enable                           = var.enable_vm
+  owner                            = var.owner
+  prefix_name                      = var.owner
+  vpc_id                           = module.eks[0].vpc_id
+  subnet_id                        = module.eks[0].public_subnet_ids[0]
+  cluster_worker_security_group_id = module.eks[0].worker_security_group_id
+  instance_type                    = var.vm_instance_type
+
+  tags = {
+    "owner"      = var.owner
+    "managed-by" = "terraform"
+  }
+}

@@ -112,3 +112,19 @@ variable "dns_child_zone_name" {
   type        = string
   default     = null
 }
+
+# ----------------------------------------------------------------------------------
+# VM workload
+# ----------------------------------------------------------------------------------
+
+variable "enable_vm" {
+  description = "Enable VM workload instance (attached to the first cluster's VPC)"
+  type        = bool
+  default     = false
+}
+
+variable "vm_instance_type" {
+  description = "EC2 instance type for the VM workload"
+  type        = string
+  default     = "t3.micro"
+}

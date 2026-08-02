@@ -28,6 +28,11 @@ output "private_subnet_ids" {
   description = "Private subnet IDs for AgentCore gateway placement"
 }
 
+output "public_subnet_ids" {
+  value       = try(aws_subnet.eks_public_subnet[*].id, [])
+  description = "Public subnet IDs (worker nodes and directly SSH-reachable instances live here)"
+}
+
 output "worker_security_group_id" {
   value       = try(aws_security_group.eks_worker_sec_group[0].id, null)
   description = "Worker node security group ID"
