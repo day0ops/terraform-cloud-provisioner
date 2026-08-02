@@ -118,9 +118,15 @@ variable "dns_child_zone_name" {
 # ----------------------------------------------------------------------------------
 
 variable "enable_vm" {
-  description = "Enable VM workload instance (attached to the first cluster's VPC)"
+  description = "Enable VM workload instance (attached to one cluster's VPC)"
   type        = bool
   default     = false
+}
+
+variable "vm_cluster_index" {
+  description = "Index into the EKS cluster list that the VM workload attaches to (0-based, default: 0 = first cluster)"
+  type        = number
+  default     = 0
 }
 
 variable "vm_instance_type" {
