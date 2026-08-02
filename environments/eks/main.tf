@@ -54,7 +54,7 @@ module "eks" {
 }
 
 # ----------------------------------------------------------------------------------
-# VM workload – attaches to the first cluster's VPC
+# VM workload – attaches to the vm_cluster_index'th cluster's VPC
 # ----------------------------------------------------------------------------------
 
 module "vm_workload" {
@@ -64,9 +64,9 @@ module "vm_workload" {
   enable                           = var.enable_vm
   owner                            = var.owner
   prefix_name                      = var.owner
-  vpc_id                           = module.eks[0].vpc_id
-  subnet_id                        = module.eks[0].public_subnet_ids[0]
-  cluster_worker_security_group_id = module.eks[0].worker_security_group_id
+  vpc_id                           = module.eks[var.vm_cluster_index].vpc_id
+  subnet_id                        = module.eks[var.vm_cluster_index].public_subnet_ids[0]
+  cluster_worker_security_group_id = module.eks[var.vm_cluster_index].worker_security_group_id
   instance_type                    = var.vm_instance_type
 
   tags = {
