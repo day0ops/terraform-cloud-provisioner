@@ -42,3 +42,28 @@ output "eks_worker_security_group_ids" {
   value       = [for m in module.eks[*] : m.worker_security_group_id]
   description = "Worker security group IDs for all EKS clusters"
 }
+
+output "eks_vm_public_ip" {
+  value       = try(module.vm_workload[0].vm_public_ip, null)
+  description = "Public IP address of the VM workload instance"
+}
+
+output "eks_vm_private_ip" {
+  value       = try(module.vm_workload[0].vm_private_ip, null)
+  description = "Private IP address of the VM workload instance"
+}
+
+output "eks_vm_instance_id" {
+  value       = try(module.vm_workload[0].vm_instance_id, null)
+  description = "Instance ID of the VM workload"
+}
+
+output "eks_vm_security_group_id" {
+  value       = try(module.vm_workload[0].vm_security_group_id, null)
+  description = "Security group ID for the VM workload"
+}
+
+output "eks_vm_ssh_private_key_path" {
+  value       = try(module.vm_workload[0].vm_ssh_private_key_path, null)
+  description = "Local filesystem path to the generated SSH private key for the VM workload"
+}
