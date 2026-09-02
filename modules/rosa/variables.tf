@@ -33,9 +33,9 @@ variable "rosa_cluster_index" {
 }
 
 variable "rosa_openshift_version" {
-  description = "OpenShift version to install, e.g. 4.19.0. Leave null to let the installer pick the default"
+  description = "OpenShift version to install, e.g. 4.19.0. The upstream rosa-hcp module requires a concrete value (no installer-side default)"
   type        = string
-  default     = null
+  default     = "4.19.0"
 }
 
 variable "rosa_compute_machine_type" {
