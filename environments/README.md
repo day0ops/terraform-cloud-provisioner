@@ -12,6 +12,7 @@ These directories are **standalone Terraform roots** for specific cloud combinat
 | `aks-eks`       | Azure + AWS | AKS and EKS                 |
 | `aks-gke`      | Azure + GCP | AKS and GKE                 |
 | `eks-gke`      | AWS + GCP   | EKS and GKE                 |
+| `eks-rosa`     | AWS only    | EKS and ROSA (HCP), same region |
 | `multicluster` | All three   | AKS, EKS, and GKE together  |
 | `eks-ipv6`     | AWS only    | EKS IPv6 dual-stack clusters with Transit Gateway mesh and optional bastion |
 
