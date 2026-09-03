@@ -38,6 +38,57 @@ module "hcp" {
   operator_role_prefix  = local.operator_role_prefix
 }
 
+# HCP's control-plane-operator creates its own VPC-endpoint security group
+# directly in AWS (outside this module, via cross-account OIDC role
+# assumption) for private connectivity to the control plane. Its own cleanup
+# doesn't reliably remove that security group when the cluster is deleted,
+# which then blocks this VPC's own deletion with a DependencyViolation.
+# Sweep leftover non-default security groups before the VPC destroy runs,
+# retrying since the operator's own cleanup can lag by a few minutes.
+resource "null_resource" "cleanup_orphaned_security_groups" {
+  triggers = {
+    vpc_id = module.vpc.vpc_id
+    region = var.rosa_region
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set -euo pipefail
+      region="${self.triggers.region}"
+      vpc_id="${self.triggers.vpc_id}"
+      # AWS's own dependency check for security groups covers two distinct
+      # cases here: a still-attached ENI from the operator's VPC endpoint
+      # (found and cleared directly below), and a backend propagation lag
+      # where the ENI is already gone from the API but the security-group
+      # dependency check hasn't caught up yet (needs a retry window rather
+      # than anything to actively clean up). 30 attempts * 20s covers both.
+      for attempt in $(seq 1 30); do
+        sgs=$(aws ec2 describe-security-groups \
+          --region "$region" \
+          --filters "Name=vpc-id,Values=$vpc_id" \
+          --query 'SecurityGroups[?GroupName!=`default`].GroupId' \
+          --output text)
+        if [ -z "$sgs" ]; then
+          exit 0
+        fi
+        for sg in $sgs; do
+          enis=$(aws ec2 describe-network-interfaces \
+            --region "$region" \
+            --filters "Name=group-id,Values=$sg" "Name=status,Values=available" \
+            --query 'NetworkInterfaces[].NetworkInterfaceId' \
+            --output text)
+          for eni in $enis; do
+            aws ec2 delete-network-interface --region "$region" --network-interface-id "$eni" || true
+          done
+          aws ec2 delete-security-group --region "$region" --group-id "$sg" || true
+        done
+        sleep 20
+      done
+    EOT
+  }
+}
+
 # rhcs_cluster_rosa_hcp has no kubeconfig output — materialize one locally via
 # `oc login` once the cluster and its admin user are ready, mirroring how
 # modules/eks writes its own kubeconfig file. The real current-context name is
