@@ -51,14 +51,32 @@ resource "null_resource" "kubeconfig" {
   }
 
   provisioner "local-exec" {
+    # Credentials travel via the environment, not the command string: on
+    # failure Terraform echoes the literal command (with $VARS unexpanded)
+    # in the error output, but would print an interpolated password verbatim.
+    environment = {
+      OC_USERNAME = module.hcp.cluster_admin_username
+      OC_PASSWORD = module.hcp.cluster_admin_password
+    }
     command = <<-EOT
       set -euo pipefail
       mkdir -p ${path.module}/output
-      oc login ${module.hcp.cluster_api_url} \
-        --username=${module.hcp.cluster_admin_username} \
-        --password='${module.hcp.cluster_admin_password}' \
-        --insecure-skip-tls-verify=true \
-        --kubeconfig=${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index}
+      # The HCP API load balancer can intermittently time out right after
+      # cluster creation while its target group is still stabilizing, so
+      # retry a few times rather than failing the whole apply on one blip.
+      for attempt in 1 2 3 4 5; do
+        if oc login ${module.hcp.cluster_api_url} \
+          --username="$OC_USERNAME" \
+          --password="$OC_PASSWORD" \
+          --insecure-skip-tls-verify=true \
+          --kubeconfig=${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index}; then
+          break
+        fi
+        if [ "$attempt" = 5 ]; then
+          exit 1
+        fi
+        sleep 20
+      done
       oc config current-context --kubeconfig=${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index} \
         > ${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index}.context
     EOT
