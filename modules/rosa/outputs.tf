@@ -11,8 +11,7 @@ output "kubeconfig_path" {
 
 # Kubeconfig context
 output "kubeconfig_context" {
-  value      = trimspace(file("${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index}.context"))
-  depends_on = [null_resource.kubeconfig]
+  value = trimspace(data.local_file.kubeconfig_context.content)
 }
 
 output "vpc_id" {

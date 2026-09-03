@@ -64,3 +64,11 @@ resource "null_resource" "kubeconfig" {
     EOT
   }
 }
+
+# Read via a data source (not the file() function) so the read is deferred to
+# apply time: file() is a pure expression evaluated eagerly during plan, which
+# fails because this file doesn't exist yet on a first apply.
+data "local_file" "kubeconfig_context" {
+  filename   = "${path.module}/output/kubeconfig-rosa-${var.rosa_cluster_index}.context"
+  depends_on = [null_resource.kubeconfig]
+}
