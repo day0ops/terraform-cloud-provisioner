@@ -46,9 +46,9 @@ variable "rosa_region" {
 }
 
 variable "rosa_openshift_version" {
-  description = "OpenShift version to install, e.g. 4.19.0. The upstream rosa-hcp module requires a concrete value (no installer-side default)"
+  description = "OpenShift version to install, e.g. 4.19.44. The upstream rosa-hcp module requires a concrete value (no installer-side default). Red Hat retires old patch versions from OCM on a rolling basis, so this default will need to be bumped periodically to a version still in the supported list."
   type        = string
-  default     = "4.19.0"
+  default     = "4.19.44"
 }
 
 variable "rosa_compute_machine_type" {
