@@ -1,5 +1,9 @@
 # Terraform Cloud Provisioner
 
+[![License](https://img.shields.io/github/license/day0ops/terraform-cloud-provisioner)](LICENSE)
+[![Top language](https://img.shields.io/github/languages/top/day0ops/terraform-cloud-provisioner)](https://www.terraform.io/)
+[![Release](https://img.shields.io/github/v/release/day0ops/terraform-cloud-provisioner)](https://github.com/day0ops/terraform-cloud-provisioner/releases)
+
 Terraform modules for provisioning Kubernetes clusters in AWS (EKS), Google (GKE), and Azure (AKS).
 
 All runnable configs live under **`environments/`**. Each environment is a separate root that uses only the providers you need, so you don't have to configure unused cloud credentials.
