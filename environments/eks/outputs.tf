@@ -43,6 +43,11 @@ output "eks_worker_security_group_ids" {
   description = "Worker security group IDs for all EKS clusters"
 }
 
+output "eks_aws_load_balancer_controller_role_arns" {
+  value       = [for m in module.eks[*] : m.aws_load_balancer_controller_role_arn]
+  description = "AWS Load Balancer Controller IRSA role ARNs for all EKS clusters"
+}
+
 output "eks_vm_public_ip" {
   value       = try(module.vm_workload[0].vm_public_ip, null)
   description = "Public IP address of the VM workload instance"

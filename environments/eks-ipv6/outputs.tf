@@ -17,3 +17,8 @@ output "eks_ipv6_configure_kubectl" {
   value       = [for c in module.eks_ipv6[*].configure_kubectl : c]
   description = "aws eks update-kubeconfig commands for each cluster"
 }
+
+output "eks_ipv6_aws_load_balancer_controller_role_arns" {
+  value       = [for m in module.eks_ipv6[*] : m.aws_load_balancer_controller_role_arn]
+  description = "AWS Load Balancer Controller IRSA role ARNs for all EKS IPv6 clusters"
+}
