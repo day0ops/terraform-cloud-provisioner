@@ -37,3 +37,8 @@ output "worker_security_group_id" {
   value       = try(aws_security_group.eks_worker_sec_group[0].id, null)
   description = "Worker node security group ID"
 }
+
+output "aws_load_balancer_controller_role_arn" {
+  value       = try(aws_iam_role.aws_load_balancer_controller_role[0].arn, null)
+  description = "IRSA role ARN for the AWS Load Balancer Controller service account"
+}
