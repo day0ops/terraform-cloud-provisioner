@@ -30,12 +30,17 @@ output "private_subnet_ids" {
 
 output "public_subnet_ids" {
   value       = try(aws_subnet.eks_public_subnet[*].id, [])
-  description = "Public subnet IDs (worker nodes and directly SSH-reachable instances live here)"
+  description = "Public subnet IDs (worker nodes live here unless eks_private_nodes is true)"
 }
 
 output "worker_security_group_id" {
   value       = try(aws_security_group.eks_worker_sec_group[0].id, null)
   description = "Worker node security group ID"
+}
+
+output "nat_gateway_public_ip" {
+  value       = try(aws_eip.eks_nat_eip[0].public_ip, null)
+  description = "Public IP (EIP) of the NAT Gateway used by private-subnet egress traffic"
 }
 
 output "aws_load_balancer_controller_role_arn" {
