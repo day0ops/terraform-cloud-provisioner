@@ -268,7 +268,7 @@ resource "aws_eks_cluster" "eks_master" {
 
   vpc_config {
     security_group_ids = [aws_security_group.eks_master_sec_group.0.id]
-    subnet_ids         = flatten([aws_subnet.eks_public_subnet[*].id])
+    subnet_ids         = flatten([aws_subnet.eks_public_subnet[*].id, aws_subnet.eks_private_subnet[*].id])
   }
 
   depends_on = [
@@ -409,7 +409,7 @@ resource "aws_launch_template" "eks_worker_lt" {
   }
 
   network_interfaces {
-    associate_public_ip_address = true
+    associate_public_ip_address = !var.eks_private_nodes
     security_groups             = [aws_security_group.eks_worker_sec_group[0].id]
   }
 
@@ -432,11 +432,13 @@ resource "aws_launch_template" "eks_worker_lt" {
 resource "aws_autoscaling_group" "eks_worker_asg" {
   count = local.count
 
-  name                = local.cluster_name
-  desired_capacity    = var.eks_nodes
-  max_size            = var.eks_max_nodes
-  min_size            = var.eks_min_nodes
-  vpc_zone_identifier = aws_subnet.eks_public_subnet.*.id
+  name             = local.cluster_name
+  desired_capacity = var.eks_nodes
+  max_size         = var.eks_max_nodes
+  min_size         = var.eks_min_nodes
+  vpc_zone_identifier = (
+    var.eks_private_nodes ? aws_subnet.eks_private_subnet.*.id : aws_subnet.eks_public_subnet.*.id
+  )
 
   launch_template {
     id      = aws_launch_template.eks_worker_lt.0.id

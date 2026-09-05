@@ -81,6 +81,12 @@ variable "eks_node_type" {
   default     = "t3.medium"
 }
 
+variable "eks_private_nodes" {
+  description = "Place worker nodes in private subnets behind the NAT Gateway instead of public subnets"
+  type        = bool
+  default     = false
+}
+
 variable "eks_subnets" {
   description = "Number of subnets"
   type        = number

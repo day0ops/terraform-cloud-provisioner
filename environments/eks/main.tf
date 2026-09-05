@@ -44,6 +44,7 @@ module "eks" {
   eks_max_nodes      = var.eks_max_nodes
   eks_node_type      = var.eks_node_type
   eks_subnets        = var.eks_subnets
+  eks_private_nodes  = var.eks_private_nodes
   kubernetes_version = coalesce(var.kubernetes_version, module.defaults.kubernetes_version)
 
   owner   = var.owner

@@ -72,6 +72,12 @@ variable "eks_subnets" {
   default     = 2
 }
 
+variable "eks_private_nodes" {
+  description = "Place worker nodes in private subnets behind the NAT Gateway instead of public subnets (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
 variable "kubernetes_version" {
   description = "EKS Kubernetes version (default: 1.34)"
   type        = string
