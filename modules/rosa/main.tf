@@ -45,8 +45,13 @@ module "hcp" {
 # issuer URL (module.hcp.oidc_endpoint_url) is. Look it up via data source instead of
 # owning it, unlike EKS's module which creates and owns aws_iam_openid_connect_provider
 # directly.
+#
+# oidc_endpoint_url itself is scheme-less (e.g. "oidc.op1.openshiftapps.com/<id>") - that's
+# the correct, expected form for the :aud/:sub condition keys below, but this data source's
+# url argument needs a real URL to parse a host out of, hence the https:// prepended here
+# only.
 data "aws_iam_openid_connect_provider" "rosa_oidc" {
-  url = module.hcp.oidc_endpoint_url
+  url = "https://${module.hcp.oidc_endpoint_url}"
 }
 
 data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
