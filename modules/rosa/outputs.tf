@@ -28,3 +28,8 @@ output "public_subnet_ids" {
   value       = module.vpc.public_subnets
   description = "Public subnet IDs for the ROSA cluster's VPC"
 }
+
+output "aws_load_balancer_controller_role_arn" {
+  value       = aws_iam_role.aws_load_balancer_controller_role.arn
+  description = "IRSA role ARN for the AWS Load Balancer Controller on this ROSA cluster"
+}

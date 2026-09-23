@@ -52,3 +52,8 @@ output "rosa_private_subnet_ids" {
   value       = [for m in module.rosa[*] : m.private_subnet_ids]
   description = "Private subnet IDs per ROSA cluster (list of lists)"
 }
+
+output "rosa_aws_load_balancer_controller_role_arns" {
+  value       = [for m in module.rosa[*] : m.aws_load_balancer_controller_role_arn]
+  description = "IRSA role ARNs for the AWS Load Balancer Controller on all ROSA clusters"
+}
