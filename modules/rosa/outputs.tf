@@ -33,3 +33,8 @@ output "aws_load_balancer_controller_role_arn" {
   value       = aws_iam_role.aws_load_balancer_controller_role.arn
   description = "IRSA role ARN for the AWS Load Balancer Controller on this ROSA cluster"
 }
+
+output "external_dns_role_arn" {
+  value       = aws_iam_role.external_dns_role.arn
+  description = "IRSA role ARN for external-dns on this ROSA cluster"
+}

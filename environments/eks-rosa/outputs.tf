@@ -58,6 +58,11 @@ output "rosa_aws_load_balancer_controller_role_arns" {
   description = "IRSA role ARNs for the AWS Load Balancer Controller on all ROSA clusters"
 }
 
+output "rosa_external_dns_role_arns" {
+  value       = [for m in module.rosa[*] : m.external_dns_role_arn]
+  description = "IRSA role ARNs for external-dns on all ROSA clusters"
+}
+
 output "shared_dns_zone_id" {
   value       = try(aws_route53_zone.child[0].zone_id, null)
   description = "Route53 child hosted zone ID (shared across EKS and ROSA)"

@@ -342,6 +342,68 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_policy" 
   role       = aws_iam_role.aws_load_balancer_controller_role.name
 }
 
+# -- external-dns (IRSA)
+#
+# Without this, external-dns falls through the AWS SDK's default credential chain to
+# EC2 IMDS, which ROSA worker nodes don't expose to pods - confirmed live via "no EC2
+# IMDS role found... connection refused" in its logs. Reuses the same OIDC provider
+# lookup as the AWS Load Balancer Controller above.
+data "aws_iam_policy_document" "external_dns_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.rosa_oidc.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.hcp.oidc_endpoint_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.hcp.oidc_endpoint_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:external-dns:external-dns"]
+    }
+  }
+}
+
+# Canonical minimal external-dns policy (see kubernetes-sigs/external-dns's own AWS
+# tutorial) - list zones/records account-wide, change records scoped to any zone.
+resource "aws_iam_policy" "external_dns_iam_policy" {
+  name = "${local.name_prefix}-external-dns-policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["route53:ChangeResourceRecordSets"]
+        Resource = ["arn:aws:route53:::hostedzone/*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ListHostedZones",
+          "route53:ListResourceRecordSets",
+          "route53:ListTagsForResource",
+        ]
+        Resource = ["*"]
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role" "external_dns_role" {
+  name               = "${local.name_prefix}-external-dns-role"
+  assume_role_policy = data.aws_iam_policy_document.external_dns_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "external_dns_policy" {
+  policy_arn = aws_iam_policy.external_dns_iam_policy.arn
+  role       = aws_iam_role.external_dns_role.name
+}
+
 # HCP's control-plane-operator creates its own VPC-endpoint security group
 # directly in AWS (outside this module, via cross-account OIDC role
 # assumption) for private connectivity to the control plane. Its own cleanup
