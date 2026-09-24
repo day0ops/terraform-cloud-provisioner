@@ -16,6 +16,24 @@ module "vpc" {
   availability_zones_count = var.rosa_availability_zones_count
 }
 
+# The rosa-hcp vpc module tags its public subnets with ROSA's own internal cluster ID
+# (kubernetes.io/cluster/<rosa-infra-id>=shared), which the AWS Load Balancer Controller
+# treats as "owned by a different cluster" and excludes outright during subnet
+# auto-discovery - confirmed live via "unable to resolve at least one subnet...
+# tagged for other clusters", even though the subnets also carry a valid
+# kubernetes.io/role/elb tag. AWS tags are independent key/value pairs, so a subnet can
+# carry multiple kubernetes.io/cluster/<name> tags for different clusters at once -
+# adding our own lets the controller (configured with clusterName=rosa-cluster, the
+# mesh-field-kit profile's cluster label - keep this in sync with
+# config/profiles/rosa-eks-ambient-peering.yaml if that label ever changes) recognize
+# them too, without touching the existing tag.
+resource "aws_ec2_tag" "public_subnet_cluster_tag" {
+  for_each    = toset(module.vpc.public_subnets)
+  resource_id = each.value
+  key         = "kubernetes.io/cluster/rosa-cluster"
+  value       = "shared"
+}
+
 module "hcp" {
   source  = "terraform-redhat/rosa-hcp/rhcs"
   version = "~> 1.7"
