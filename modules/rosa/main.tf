@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
       identifiers = [data.aws_iam_openid_connect_provider.rosa_oidc.arn]
     }
     condition {
-      test     = "StringEquals"
+      test = "StringEquals"
       # ROSA's own IRSA-equivalent webhook (confirmed live via a running pod's
       # projected token volume) issues tokens with audience "openshift", not AWS's
       # own EKS convention "sts.amazonaws.com" - it matches Red Hat's cloud-credential-
@@ -362,7 +362,7 @@ data "aws_iam_policy_document" "external_dns_assume_role" {
       identifiers = [data.aws_iam_openid_connect_provider.rosa_oidc.arn]
     }
     condition {
-      test     = "StringEquals"
+      test = "StringEquals"
       # ROSA's own IRSA-equivalent webhook (confirmed live via a running pod's
       # projected token volume) issues tokens with audience "openshift", not AWS's
       # own EKS convention "sts.amazonaws.com" - it matches Red Hat's cloud-credential-
