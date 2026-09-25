@@ -16,17 +16,6 @@ module "vpc" {
   availability_zones_count = var.rosa_availability_zones_count
 }
 
-# The rosa-hcp vpc module tags public subnets with ROSA's own internal cluster ID,
-# which AWS LBC's subnet auto-discovery rejects as "tagged for other clusters" - even
-# with our own matching tag added (confirmed live, harmless to keep). The real fix is
-# disableSubnetClusterTagCheck in the aws-load-balancer-controller addon.
-resource "aws_ec2_tag" "public_subnet_cluster_tag" {
-  for_each    = toset(module.vpc.public_subnets)
-  resource_id = each.value
-  key         = "kubernetes.io/cluster/rosa-cluster"
-  value       = "shared"
-}
-
 module "hcp" {
   source  = "terraform-redhat/rosa-hcp/rhcs"
   version = "~> 1.7"
