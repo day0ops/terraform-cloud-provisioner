@@ -106,6 +106,54 @@ variable "kubernetes_version" {
   default     = "1.34"
 }
 
+variable "gke_release_channel" {
+  description = "GKE release channel (STABLE, REGULAR, RAPID). RAPID is required to reach k8s 1.37, which Agent Substrate needs for PodCertificateRequest/ClusterTrustBundle to be GA (Default: `STABLE`)"
+  type        = string
+  default     = "STABLE"
+}
+
+variable "gke_enable_beta_apis" {
+  description = "Kubernetes beta APIs to whitelist on the cluster (e.g. `certificates.k8s.io/v1beta1` for Agent Substrate). Empty means none (Default: `[]`)"
+  type        = list(string)
+  default     = []
+}
+
+variable "gke_enable_workload_identity" {
+  description = "Enable GKE Workload Identity Federation for GCP, so pods can assume GCP service accounts without key files (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
+variable "gke_disable_filestore_csi" {
+  description = "Disable the Filestore CSI driver addon (Default: `false`, GCP's own default). Agent Substrate recommends disabling it."
+  type        = bool
+  default     = false
+}
+
+variable "gke_node_auto_upgrade" {
+  description = "Node auto-upgrade for the worker pool (Default: `true`, GKE's own default). Agent Substrate requires this off on any pool running workers -- auto-upgrade forwards SIGTERM into actor containers on Google's own maintenance schedule, and an actor still awake after the 30-minute suspend window moves to a terminal CRASHED state."
+  type        = bool
+  default     = true
+}
+
+variable "enable_workload_storage" {
+  description = "Create a GCS bucket + GSA, bound via Workload Identity to a given Kubernetes ServiceAccount -- generic object storage for whatever workload needs it (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
+variable "workload_storage_ksa_namespace" {
+  description = "Namespace of the Kubernetes ServiceAccount to bind the storage GSA to"
+  type        = string
+  default     = ""
+}
+
+variable "workload_storage_ksa_name" {
+  description = "Names of the Kubernetes ServiceAccounts to bind the storage GSA to -- every workload that touches the bucket directly needs its own binding (e.g. Agent Substrate's atelet AND ate-api-server, which independently manages golden-snapshot Tags)"
+  type        = list(string)
+  default     = []
+}
+
 # -- Tagging and labeling
 
 variable "owner" {
@@ -133,4 +181,10 @@ variable "extra_tags" {
   description = "Tags used for the GKE resources"
   type        = list(string)
   default     = []
+}
+
+variable "gke_restrict_control_plane_access" {
+  description = "Restrict the control plane's public endpoint to the applying workstation's own IP (Default: `false` -- open to the internet, matching this demo tool's convention of gating access on the application-facing LoadBalancers instead, not the cluster's own admin API)"
+  type        = bool
+  default     = false
 }
