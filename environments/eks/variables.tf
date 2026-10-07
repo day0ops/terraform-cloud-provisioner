@@ -101,6 +101,24 @@ variable "enable_dns" {
   default     = false
 }
 
+variable "enable_workload_storage" {
+  description = "Create an S3 bucket + IRSA role, bound to a given Kubernetes ServiceAccount -- generic object storage for whatever workload needs it"
+  type        = bool
+  default     = false
+}
+
+variable "workload_storage_ksa_namespace" {
+  description = "Namespace of the Kubernetes ServiceAccount to bind the storage IRSA role to"
+  type        = string
+  default     = ""
+}
+
+variable "workload_storage_ksa_name" {
+  description = "Name of the Kubernetes ServiceAccount to bind the storage IRSA role to"
+  type        = string
+  default     = ""
+}
+
 variable "dns_parent_zone_id" {
   description = "Route53 parent hosted zone ID"
   type        = string

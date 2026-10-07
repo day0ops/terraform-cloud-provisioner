@@ -30,6 +30,83 @@ variable "kubernetes_version" {
   default     = null
 }
 
+variable "gke_release_channel" {
+  description = "GKE release channel (STABLE, REGULAR, RAPID)"
+  type        = string
+  default     = "STABLE"
+}
+
+variable "gke_enable_beta_apis" {
+  description = "Kubernetes beta APIs to whitelist on the cluster (e.g. certificates.k8s.io/v1beta1)"
+  type        = list(string)
+  default     = []
+}
+
+variable "gke_enable_workload_identity" {
+  description = "Enable GKE Workload Identity Federation for GCP"
+  type        = bool
+  default     = false
+}
+
+variable "gke_disable_filestore_csi" {
+  description = "Disable the Filestore CSI driver addon"
+  type        = bool
+  default     = false
+}
+
+variable "gke_node_auto_upgrade" {
+  description = "Node auto-upgrade for the worker pool"
+  type        = bool
+  default     = true
+}
+
+variable "gke_restrict_control_plane_access" {
+  description = "Restrict the control plane's public endpoint to the applying workstation's own IP (Default: `false` -- open to the internet)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_workload_storage" {
+  description = "Create a GCS bucket + GSA, bound via Workload Identity to a given Kubernetes ServiceAccount -- generic object storage for whatever workload needs it"
+  type        = bool
+  default     = false
+}
+
+variable "workload_storage_ksa_namespace" {
+  description = "Namespace of the Kubernetes ServiceAccount to bind the storage GSA to"
+  type        = string
+  default     = ""
+}
+
+variable "workload_storage_ksa_name" {
+  description = "Names of the Kubernetes ServiceAccounts to bind the storage GSA to"
+  type        = list(string)
+  default     = []
+}
+
+# -- DNS: this environment only ever manages its own Cloud DNS zone. The external Route53
+# parent's NS delegation record is created separately (environments/dns-delegation) -- this
+# environment only needs the parent domain to compute its own zone's FQDN, never the parent
+# zone's ID or AWS credentials.
+
+variable "enable_dns" {
+  description = "Enable the Cloud DNS child zone"
+  type        = bool
+  default     = false
+}
+
+variable "dns_parent_domain" {
+  description = "Parent domain this zone is a child of (e.g., kasunt.apac.fe.solo.io) -- used only to compute this zone's own FQDN"
+  type        = string
+  default     = null
+}
+
+variable "dns_child_zone_name" {
+  description = "Child zone subdomain (e.g., agentic-demo-gke)"
+  type        = string
+  default     = null
+}
+
 # ----------------------------------------------------------------------------------
 # GKE
 # ----------------------------------------------------------------------------------

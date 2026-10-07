@@ -53,6 +53,21 @@ output "eks_aws_load_balancer_controller_role_arns" {
   description = "AWS Load Balancer Controller IRSA role ARNs for all EKS clusters"
 }
 
+output "eks_workload_storage_bucket" {
+  value       = [for m in module.eks[*] : m.workload_storage_bucket]
+  description = "Workload storage bucket URIs, per cluster (null where not enabled)"
+}
+
+output "eks_workload_storage_identity_annotation_key" {
+  value       = [for m in module.eks[*] : m.workload_storage_identity_annotation_key]
+  description = "Workload storage KSA annotation keys, per cluster (null where not enabled)"
+}
+
+output "eks_workload_storage_identity_annotation_value" {
+  value       = [for m in module.eks[*] : m.workload_storage_identity_annotation_value]
+  description = "Workload storage KSA annotation values, per cluster (null where not enabled)"
+}
+
 output "eks_vm_public_ip" {
   value       = try(module.vm_workload[0].vm_public_ip, null)
   description = "Public IP address of the VM workload instance"

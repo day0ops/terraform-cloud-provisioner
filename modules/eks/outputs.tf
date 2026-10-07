@@ -47,3 +47,18 @@ output "aws_load_balancer_controller_role_arn" {
   value       = try(aws_iam_role.aws_load_balancer_controller_role[0].arn, null)
   description = "IRSA role ARN for the AWS Load Balancer Controller service account"
 }
+
+output "workload_storage_bucket" {
+  value       = try("s3://${aws_s3_bucket.workload_storage[0].bucket}", null)
+  description = "Workload storage bucket URI (s3://...), null if not enabled"
+}
+
+output "workload_storage_identity_annotation_key" {
+  value       = try(aws_iam_role.workload_storage_role[0].arn, null) != null ? "eks.amazonaws.com/role-arn" : null
+  description = "Kubernetes ServiceAccount annotation key for IRSA, null if not enabled"
+}
+
+output "workload_storage_identity_annotation_value" {
+  value       = try(aws_iam_role.workload_storage_role[0].arn, null)
+  description = "IRSA role ARN to annotate the Kubernetes ServiceAccount with, null if not enabled"
+}

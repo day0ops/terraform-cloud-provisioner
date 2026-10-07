@@ -47,6 +47,10 @@ module "eks" {
   eks_private_nodes  = var.eks_private_nodes
   kubernetes_version = coalesce(var.kubernetes_version, module.defaults.kubernetes_version)
 
+  enable_workload_storage        = var.enable_workload_storage
+  workload_storage_ksa_namespace = var.workload_storage_ksa_namespace
+  workload_storage_ksa_name      = var.workload_storage_ksa_name
+
   owner   = var.owner
   team    = var.team
   purpose = var.purpose

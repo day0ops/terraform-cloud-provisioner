@@ -14,6 +14,7 @@ These directories are **standalone Terraform roots** for specific cloud combinat
 | `eks-gke`      | AWS + GCP   | EKS and GKE                 |
 | `eks-rosa`     | AWS only    | EKS and ROSA (HCP), same region |
 | `multicluster` | All three   | AKS, EKS, and GKE together  |
+| `dns-delegation` | AWS only  | Delegating a child zone hosted in another cloud's native DNS from the primary Route53 parent zone (NS record only -- doesn't provision any cluster) |
 | `eks-ipv6`     | AWS only    | EKS IPv6 dual-stack clusters with Transit Gateway mesh and optional bastion |
 
 ## How to use

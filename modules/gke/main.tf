@@ -34,10 +34,19 @@ data "google_container_engine_versions" "gke_current_k8s_version" {
 }
 
 locals {
-  provider_type           = "gke"
-  cluster_name            = try(join("-", [format("%v-%v-%v", var.owner, var.gke_cluster_name, random_id.gke_cluster_name_suffix.0.hex), var.gke_cluster_index]), "")
-  kubeconfig_context      = try(format("%v-%v", local.provider_type, local.cluster_name), "")
-  node_pool_name          = try(format("%v-node", local.cluster_name), "")
+  provider_type       = "gke"
+  gke_name_suffix_hex = try(random_id.gke_cluster_name_suffix.0.hex, "")
+  # GCP cluster/node-pool names are capped at 40 chars and node_pool_name appends "-node"
+  # (5 chars). Reserve room for owner, the random suffix, the index and their hyphens, then
+  # truncate only the user-supplied gke_cluster_name to whatever's left.
+  gke_name_overhead  = length(var.owner) + length(local.gke_name_suffix_hex) + length(tostring(var.gke_cluster_index)) + 8
+  gke_name_budget    = max(40 - local.gke_name_overhead, 6)
+  cluster_name       = try(join("-", [format("%v-%v-%v", var.owner, substr(var.gke_cluster_name, 0, local.gke_name_budget), local.gke_name_suffix_hex), var.gke_cluster_index]), "")
+  kubeconfig_context = try(format("%v-%v", local.provider_type, local.cluster_name), "")
+  node_pool_name     = try(format("%v-node", local.cluster_name), "")
+  # GCP service account IDs are capped at 30 chars, cluster_name alone can exceed that.
+  gke_service_account_id  = "${trimsuffix(substr(local.cluster_name, 0, 26), "-")}-sa"
+  workload_storage_sa_id  = "${trimsuffix(substr(local.cluster_name, 0, 22), "-")}-storage"
   k8s_version             = try(tostring(try(var.kubernetes_version, data.google_container_engine_versions.gke_current_k8s_version.0.release_channel_default_version["STABLE"])), "")
   workstation_public_cidr = try("${chomp(data.http.workstation_public_ip.0.response_body)}/32", "")
   all_service_account_roles = concat(var.gke_serviceaccount_roles, [
@@ -70,7 +79,7 @@ resource "google_service_account" "gke_service_account" {
   count = local.count
 
   project      = var.gke_project
-  account_id   = format("%v-sa", local.cluster_name)
+  account_id   = local.gke_service_account_id
   display_name = var.gke_serviceaccount_description
 }
 
@@ -88,9 +97,14 @@ resource "google_container_cluster" "gke_master" {
   name               = local.cluster_name
   location           = var.enable_gke_regional_cluster ? var.gke_region : data.google_compute_zones.gke_available_zones[count.index].names[0]
   min_master_version = local.k8s_version
-  node_version       = local.k8s_version
 
-  # Remove the default node pool once provisioned since we manage this separately
+  # Disposable demo clusters -- the provider's own default (true) would block the
+  # provision/destroy cycles this tool is built around.
+  deletion_protection = false
+
+  # Remove the default node pool once provisioned since we manage this separately (its version
+  # is set on google_container_node_pool.gke_workers below). node_version can't be set here
+  # when remove_default_node_pool is true -- there's no default pool left for it to apply to.
   remove_default_node_pool = true
   initial_node_count       = 1
 
@@ -99,7 +113,21 @@ resource "google_container_cluster" "gke_master" {
   }
 
   release_channel {
-    channel = "STABLE"
+    channel = var.gke_release_channel
+  }
+
+  dynamic "enable_k8s_beta_apis" {
+    for_each = length(var.gke_enable_beta_apis) > 0 ? [1] : []
+    content {
+      enabled_apis = var.gke_enable_beta_apis
+    }
+  }
+
+  dynamic "workload_identity_config" {
+    for_each = var.gke_enable_workload_identity ? [1] : []
+    content {
+      workload_pool = "${var.gke_project}.svc.id.goog"
+    }
   }
 
   addons_config {
@@ -112,17 +140,35 @@ resource "google_container_cluster" "gke_master" {
     horizontal_pod_autoscaling {
       disabled = !var.enable_gke_hpa
     }
+
+    gcp_filestore_csi_driver_config {
+      enabled = !var.gke_disable_filestore_csi
+    }
   }
 
-  # Network (cidr) from which cluster is accessible (Required for private cluster, optional otherwise)
-  master_authorized_networks_config {
-    cidr_blocks {
-      display_name = "gke-admin"
-      cidr_block   = local.workstation_public_cidr
+  # The control plane's own public endpoint is open to the internet by default -- access
+  # control for this demo tool's clusters belongs on the application-facing LoadBalancers
+  # (see e.g. the kagent/fraud-ops-console addons' own gatewaySourceRanges), not here. Set
+  # gke_restrict_control_plane_access to opt into restricting it to the applying
+  # workstation's own IP instead.
+  dynamic "master_authorized_networks_config" {
+    for_each = var.gke_restrict_control_plane_access ? [1] : []
+    content {
+      cidr_blocks {
+        display_name = "gke-admin"
+        cidr_block   = local.workstation_public_cidr
+      }
     }
   }
 
   resource_labels = { for key, value in local.labels : lower(key) => lower(value) }
+
+  # node_config only ever describes the throwaway default pool removed above; once it's gone,
+  # the API stops reporting it consistently and the provider sees spurious drift that would
+  # force a full cluster replacement. Real node pools are managed via gke_workers below.
+  lifecycle {
+    ignore_changes = [node_config]
+  }
 }
 
 resource "google_container_node_pool" "gke_workers" {
@@ -148,6 +194,18 @@ resource "google_container_node_pool" "gke_workers" {
     oauth_scopes = var.gke_oauth_scopes
     tags         = local.tags
     labels       = local.labels
+
+    dynamic "workload_metadata_config" {
+      for_each = var.gke_enable_workload_identity ? [1] : []
+      content {
+        mode = "GKE_METADATA"
+      }
+    }
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = var.gke_node_auto_upgrade
   }
 }
 
@@ -166,4 +224,44 @@ resource "local_file" "kubeconfig_tpl_renderer" {
 
   content  = local.kubeconfig_rendered
   filename = "${path.module}/output/kubeconfig-gke-${var.gke_cluster_index}"
+}
+
+# -- Workload storage (GCS + Workload Identity) -- a GCS bucket bound to a given
+# Kubernetes ServiceAccount, for whatever workload needs object storage (e.g. Agent
+# Substrate actor snapshots). Generic by design: one bucket + one identity binding,
+# consumers decide what they put in the bucket and which KSA they bind it to.
+
+resource "google_storage_bucket" "workload_storage" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  name                        = "${local.cluster_name}-workload-storage"
+  project                     = var.gke_project
+  location                    = var.gke_region
+  uniform_bucket_level_access = true
+  force_destroy               = false
+  labels                      = local.labels
+}
+
+resource "google_service_account" "workload_storage" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  project      = var.gke_project
+  account_id   = local.workload_storage_sa_id
+  display_name = "Workload storage (${local.cluster_name})"
+}
+
+resource "google_storage_bucket_iam_member" "workload_storage_writer" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  bucket = google_storage_bucket.workload_storage[0].name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.workload_storage[0].email}"
+}
+
+resource "google_service_account_iam_member" "workload_storage_workload_identity" {
+  for_each = var.enable_workload_storage ? toset(var.workload_storage_ksa_name) : toset([])
+
+  service_account_id = google_service_account.workload_storage[0].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.gke_project}.svc.id.goog[${var.workload_storage_ksa_namespace}/${each.value}]"
 }
