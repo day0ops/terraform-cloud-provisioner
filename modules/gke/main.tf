@@ -34,10 +34,18 @@ data "google_container_engine_versions" "gke_current_k8s_version" {
 }
 
 locals {
-  provider_type           = "gke"
-  cluster_name            = try(join("-", [format("%v-%v-%v", var.owner, var.gke_cluster_name, random_id.gke_cluster_name_suffix.0.hex), var.gke_cluster_index]), "")
-  kubeconfig_context      = try(format("%v-%v", local.provider_type, local.cluster_name), "")
-  node_pool_name          = try(format("%v-node", local.cluster_name), "")
+  provider_type       = "gke"
+  gke_name_suffix_hex = try(random_id.gke_cluster_name_suffix.0.hex, "")
+  # GCP cluster/node-pool names are capped at 40 chars and node_pool_name appends "-node"
+  # (5 chars). Reserve room for owner, the random suffix, the index and their hyphens, then
+  # truncate only the user-supplied gke_cluster_name to whatever's left.
+  gke_name_overhead  = length(var.owner) + length(local.gke_name_suffix_hex) + length(tostring(var.gke_cluster_index)) + 8
+  gke_name_budget    = max(40 - local.gke_name_overhead, 6)
+  cluster_name       = try(join("-", [format("%v-%v-%v", var.owner, substr(var.gke_cluster_name, 0, local.gke_name_budget), local.gke_name_suffix_hex), var.gke_cluster_index]), "")
+  kubeconfig_context = try(format("%v-%v", local.provider_type, local.cluster_name), "")
+  node_pool_name     = try(format("%v-node", local.cluster_name), "")
+  # GCP service account IDs are capped at 30 chars, cluster_name alone can exceed that.
+  gke_service_account_id  = "${trimsuffix(substr(local.cluster_name, 0, 26), "-")}-sa"
   k8s_version             = try(tostring(try(var.kubernetes_version, data.google_container_engine_versions.gke_current_k8s_version.0.release_channel_default_version["STABLE"])), "")
   workstation_public_cidr = try("${chomp(data.http.workstation_public_ip.0.response_body)}/32", "")
   all_service_account_roles = concat(var.gke_serviceaccount_roles, [
@@ -70,7 +78,7 @@ resource "google_service_account" "gke_service_account" {
   count = local.count
 
   project      = var.gke_project
-  account_id   = format("%v-sa", local.cluster_name)
+  account_id   = local.gke_service_account_id
   display_name = var.gke_serviceaccount_description
 }
 
@@ -88,9 +96,14 @@ resource "google_container_cluster" "gke_master" {
   name               = local.cluster_name
   location           = var.enable_gke_regional_cluster ? var.gke_region : data.google_compute_zones.gke_available_zones[count.index].names[0]
   min_master_version = local.k8s_version
-  node_version       = local.k8s_version
 
-  # Remove the default node pool once provisioned since we manage this separately
+  # Disposable demo clusters -- the provider's own default (true) would block the
+  # provision/destroy cycles this tool is built around.
+  deletion_protection = false
+
+  # Remove the default node pool once provisioned since we manage this separately (its version
+  # is set on google_container_node_pool.gke_workers below). node_version can't be set here
+  # when remove_default_node_pool is true -- there's no default pool left for it to apply to.
   remove_default_node_pool = true
   initial_node_count       = 1
 
@@ -114,7 +127,6 @@ resource "google_container_cluster" "gke_master" {
     }
   }
 
-  # Network (cidr) from which cluster is accessible (Required for private cluster, optional otherwise)
   master_authorized_networks_config {
     cidr_blocks {
       display_name = "gke-admin"
@@ -123,6 +135,13 @@ resource "google_container_cluster" "gke_master" {
   }
 
   resource_labels = { for key, value in local.labels : lower(key) => lower(value) }
+
+  # node_config only ever describes the throwaway default pool removed above; once it's gone,
+  # the API stops reporting it consistently and the provider sees spurious drift that would
+  # force a full cluster replacement. Real node pools are managed via gke_workers below.
+  lifecycle {
+    ignore_changes = [node_config]
+  }
 }
 
 resource "google_container_node_pool" "gke_workers" {
