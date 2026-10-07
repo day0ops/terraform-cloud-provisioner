@@ -922,6 +922,78 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_policy" 
   role       = aws_iam_role.aws_load_balancer_controller_role[0].name
 }
 
+# -- Workload storage (S3 + IRSA) -- an S3 bucket bound to a given Kubernetes
+# ServiceAccount, for whatever workload needs object storage (e.g. Agent Substrate
+# actor snapshots). Generic by design: one bucket + one identity binding, consumers
+# decide what they put in the bucket and which KSA they bind it to.
+
+resource "aws_s3_bucket" "workload_storage" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  bucket        = lower("${local.cluster_name}-workload-storage")
+  force_destroy = false
+  tags          = local.tags
+}
+
+data "aws_iam_policy_document" "workload_storage_assume_role" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks_oidc_provider[0].arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks_oidc_provider[0].url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks_oidc_provider[0].url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:${var.workload_storage_ksa_namespace}:${var.workload_storage_ksa_name}"]
+    }
+  }
+}
+
+resource "aws_iam_role" "workload_storage_role" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  name               = format("%v-workload-storage-role", local.cluster_name)
+  assume_role_policy = data.aws_iam_policy_document.workload_storage_assume_role[0].json
+  tags               = local.tags
+}
+
+resource "aws_iam_policy" "workload_storage_policy" {
+  count = var.enable_workload_storage ? local.count : 0
+
+  name = format("%v-workload-storage-policy", local.cluster_name)
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.workload_storage[0].arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.workload_storage[0].arn
+      },
+    ]
+  })
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "workload_storage_policy_attachment" {
+  count      = var.enable_workload_storage ? local.count : 0
+  policy_arn = aws_iam_policy.workload_storage_policy[0].arn
+  role       = aws_iam_role.workload_storage_role[0].name
+}
+
 # -- GP3 Storage Class
 
 resource "null_resource" "gp3_storage_class" {

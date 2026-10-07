@@ -4,6 +4,24 @@ variable "enable_eks" {
   default     = false
 }
 
+variable "enable_workload_storage" {
+  description = "Create an S3 bucket + IRSA role, bound to a given Kubernetes ServiceAccount -- generic object storage for whatever workload needs it (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
+variable "workload_storage_ksa_namespace" {
+  description = "Namespace of the Kubernetes ServiceAccount to bind the storage IRSA role to"
+  type        = string
+  default     = ""
+}
+
+variable "workload_storage_ksa_name" {
+  description = "Name of the Kubernetes ServiceAccount to bind the storage IRSA role to"
+  type        = string
+  default     = ""
+}
+
 variable "eks_region" {
   description = "AWS region for EKS (Default: `ap-southeast-2`, Ref: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)"
   type        = string
