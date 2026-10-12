@@ -931,7 +931,7 @@ resource "aws_s3_bucket" "workload_storage" {
   count = var.enable_workload_storage ? local.count : 0
 
   bucket        = lower("${local.cluster_name}-workload-storage")
-  force_destroy = false
+  force_destroy = var.workload_storage_force_destroy
   tags          = local.tags
 }
 

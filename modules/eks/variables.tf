@@ -22,6 +22,12 @@ variable "workload_storage_ksa_name" {
   default     = ""
 }
 
+variable "workload_storage_force_destroy" {
+  description = "Allow Terraform to delete the workload storage bucket even if it still contains objects (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
 variable "eks_region" {
   description = "AWS region for EKS (Default: `ap-southeast-2`, Ref: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)"
   type        = string

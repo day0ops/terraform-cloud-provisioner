@@ -238,7 +238,7 @@ resource "google_storage_bucket" "workload_storage" {
   project                     = var.gke_project
   location                    = var.gke_region
   uniform_bucket_level_access = true
-  force_destroy               = false
+  force_destroy               = var.workload_storage_force_destroy
   labels                      = local.labels
 }
 
