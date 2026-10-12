@@ -84,6 +84,12 @@ variable "workload_storage_ksa_name" {
   default     = []
 }
 
+variable "workload_storage_force_destroy" {
+  description = "Allow Terraform to delete the workload storage bucket even if it still contains objects"
+  type        = bool
+  default     = false
+}
+
 # -- DNS: this environment only ever manages its own Cloud DNS zone. The external Route53
 # parent's NS delegation record is created separately (environments/dns-delegation) -- this
 # environment only needs the parent domain to compute its own zone's FQDN, never the parent

@@ -119,6 +119,12 @@ variable "workload_storage_ksa_name" {
   default     = ""
 }
 
+variable "workload_storage_force_destroy" {
+  description = "Allow Terraform to delete the workload storage bucket even if it still contains objects"
+  type        = bool
+  default     = false
+}
+
 variable "dns_parent_zone_id" {
   description = "Route53 parent hosted zone ID"
   type        = string

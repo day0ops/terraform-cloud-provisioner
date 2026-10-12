@@ -50,6 +50,7 @@ module "eks" {
   enable_workload_storage        = var.enable_workload_storage
   workload_storage_ksa_namespace = var.workload_storage_ksa_namespace
   workload_storage_ksa_name      = var.workload_storage_ksa_name
+  workload_storage_force_destroy = var.workload_storage_force_destroy
 
   owner   = var.owner
   team    = var.team
