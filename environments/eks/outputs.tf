@@ -92,3 +92,8 @@ output "eks_vm_ssh_private_key_path" {
   value       = try(module.vm_workload[0].vm_ssh_private_key_path, null)
   description = "Local filesystem path to the generated SSH private key for the VM workload"
 }
+
+output "eks_worker_asg_names" {
+  value       = [for m in module.eks[*] : m.worker_asg_name]
+  description = "Worker node Auto Scaling Group names, per cluster (for scheduled/on-demand node sleep)"
+}
