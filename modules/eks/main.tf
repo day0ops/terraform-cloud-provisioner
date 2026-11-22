@@ -468,6 +468,8 @@ resource "aws_autoscaling_group" "eks_worker_asg" {
     }
   }
 
+  # Ignore desired_capacity changes so the node-sleep schedule and on-demand script can manage it independently,
+  # even when enable_node_sleep_schedule is false (Terraform's ignore_changes cannot be conditional).
   lifecycle {
     create_before_destroy = true
     ignore_changes        = [desired_capacity]

@@ -39,3 +39,5 @@ Variables and outputs are per environment; see `environments/<name>/variables.tf
 - **AKS** – `az login` and a service principal; see [Azurerm docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret).
 
 Full list of environments and usage: **[environments/README.md](environments/README.md)**.
+
+**EKS node sleep schedule:** EKS environments support optional automatic node scaling on a schedule (e.g. to zero after hours) for cost savings. See [Node sleep schedule](environments/README.md#node-sleep-schedule) in the environments guide for setup and manual on-demand control via `scripts/eks-node-sleep.sh`.

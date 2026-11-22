@@ -56,3 +56,44 @@ Sample variable files live in `examples/`. Use the one that matches your target 
 | `eks-ipv6.tfvars` | `environments/eks-ipv6` | IPv6 dual-stack; bastion enabled by default |
 
 Each example covers required variables and shows optional ones as comments. Copy the relevant file, edit values, then pass it with `-var-file=my.tfvars`.
+
+## Node sleep schedule
+
+**What it does:** Automatically scale EKS worker nodes to zero on a recurring schedule (e.g. after hours or weekends) to save EC2 compute cost, then scale back up at a specified time. The schedule runs via AWS EventBridge and Lambda; use the on-demand script below to manually sleep/wake a cluster outside the schedule.
+
+**Cost caveat:** This saves EC2 compute cost only. It does NOT reduce the EKS control plane fee (billed per cluster regardless of node count) or NAT Gateway charges (still active even with zero nodes).
+
+**Prerequisites:** To use the sleep schedule, set `eks_min_nodes = 0` in your tfvars. Terraform enforces this with a precondition, as AWS does not allow `desired_capacity` to drop below `min_size`.
+
+**Variables (EKS environment only):**
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `enable_node_sleep_schedule` | bool | `false` | Enable the recurring sleep schedule |
+| `node_sleep_cron` | string | `"30 18 * * MON-FRI"` | Cron expression (5-field, in `node_sleep_timezone`) to scale nodes to zero |
+| `node_wake_cron` | string | `"0 8 * * MON-FRI"` | Cron expression (5-field, in `node_sleep_timezone`) to scale nodes back up |
+| `node_sleep_timezone` | string | `"UTC"` | IANA time zone for the cron expressions (e.g. `"America/New_York"`) |
+
+**On-demand sleep/wake:**
+
+Use `scripts/eks-node-sleep.sh` to manually control node scaling independent of the schedule.
+
+Syntax: `scripts/eks-node-sleep.sh <environment-dir> <cluster-index> <sleep|wake> [options]`
+
+Sleep (no flags needed; always targets min=0, max=0, desired=0):
+```bash
+scripts/eks-node-sleep.sh environments/eks 0 sleep
+```
+
+Wake (must supply the same values as your `eks_min_nodes`, `eks_max_nodes`, `eks_nodes` tfvars):
+```bash
+scripts/eks-node-sleep.sh environments/eks 0 wake --min 1 --max 3 --desired 2
+```
+
+Options:
+- `--min N` required for `wake`, rejected for `sleep`
+- `--max N` required for `wake`, rejected for `sleep`
+- `--desired N` required for `wake`, rejected for `sleep`
+- `--profile NAME` AWS CLI profile name
+- `--region NAME` AWS region
+- `--dry-run` print the AWS CLI command instead of executing it
