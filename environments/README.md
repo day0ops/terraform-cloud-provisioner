@@ -59,7 +59,7 @@ Each example covers required variables and shows optional ones as comments. Copy
 
 ## Node sleep schedule
 
-**What it does:** Automatically scale EKS worker nodes to zero on a recurring schedule (e.g. after hours or weekends) to save EC2 compute cost, then scale back up at a specified time. The schedule runs via AWS EventBridge and Lambda; use the on-demand script below to manually sleep/wake a cluster outside the schedule.
+**What it does:** Automatically scale EKS worker nodes to zero on a recurring schedule (e.g. after hours or weekends) to save EC2 compute cost, then scale back up at a specified time. The schedule is implemented via Terraform-managed `aws_autoscaling_schedule` resources (`eks_worker_sleep` and `eks_worker_wake`) that act directly on the worker Auto Scaling Group. Use the on-demand script below to manually sleep/wake a cluster outside the schedule.
 
 **Cost caveat:** This saves EC2 compute cost only. It does NOT reduce the EKS control plane fee (billed per cluster regardless of node count) or NAT Gateway charges (still active even with zero nodes).
 
