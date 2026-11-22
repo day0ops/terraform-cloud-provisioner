@@ -133,6 +133,40 @@ EOF
   rm -f "$sentinel"
 }
 
+# Bonus: sleep must only ever send --desired-capacity 0 to the AWS CLI,
+# leaving --min-size/--max-size unset so the ASG's current min/max survive
+# (the AWS API leaves omitted fields unchanged). Guards against regressing
+# back to the "sleep also zeroes min/max" bug.
+test_sleep_dry_run_omits_min_max() {
+  local fakebin tf_env
+  fakebin=$(mktemp -d)
+  tf_env=$(mktemp -d)
+
+  cat >"$fakebin/terraform" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == *"output -json eks_worker_asg_names"* ]]; then
+  echo '["asg-fake-1","asg-fake-2"]'
+  exit 0
+fi
+echo "fake terraform: unsupported invocation: $*" >&2
+exit 1
+EOF
+  chmod +x "$fakebin/terraform"
+
+  local PATH="$fakebin:$PATH"
+  run_script "$tf_env" 0 sleep --dry-run
+
+  assert_exit_code 0 "test_sleep_dry_run_omits_min_max"
+  if [[ "$RUN_STDOUT" != *"--desired-capacity 0"* ]]; then
+    fail "test_sleep_dry_run_omits_min_max: expected stdout to contain '--desired-capacity 0', got: $RUN_STDOUT"
+  fi
+  if [[ "$RUN_STDOUT" == *"--min-size"* || "$RUN_STDOUT" == *"--max-size"* ]]; then
+    fail "test_sleep_dry_run_omits_min_max: sleep must not send --min-size/--max-size, got: $RUN_STDOUT"
+  fi
+
+  rm -rf "$fakebin" "$tf_env"
+}
+
 # Bonus: the brief also calls out an out-of-range cluster-index as its own
 # exit-2 case, distinct from "no state dir". Uses the same fake-terraform
 # trick as the dry-run test to simulate a real, but short, ASG list.
@@ -169,6 +203,7 @@ for t in \
   test_wake_requires_min_max_desired \
   test_missing_state_dir_exit_code_2 \
   test_dry_run_prints_command_and_skips_aws \
+  test_sleep_dry_run_omits_min_max \
   test_out_of_range_cluster_index_exit_code_2
 do
   "$t"

@@ -81,13 +81,17 @@ lookup_asg_name() {
 }
 
 # Resizes the ASG via the AWS CLI, or prints the command when dry_run=true.
+# For action=sleep, --min-size/--max-size are omitted so the AWS API leaves
+# the ASG's current min/max untouched (matching the Terraform-side
+# aws_autoscaling_schedule.eks_worker_sleep, which does not alter them either).
 run_aws_update() {
-  local asg_name="$1" min="$2" max="$3" desired="$4" profile="$5" region="$6" dry_run="$7"
+  local asg_name="$1" action="$2" min="$3" max="$4" desired="$5" profile="$6" region="$7" dry_run="$8"
   local -a cmd=(aws autoscaling update-auto-scaling-group
-    --auto-scaling-group-name "$asg_name"
-    --min-size "$min"
-    --max-size "$max"
-    --desired-capacity "$desired")
+    --auto-scaling-group-name "$asg_name")
+  if [[ "$action" == "wake" ]]; then
+    cmd+=(--min-size "$min" --max-size "$max")
+  fi
+  cmd+=(--desired-capacity "$desired")
   [[ -n "$profile" ]] && cmd+=(--profile "$profile")
   [[ -n "$region" ]] && cmd+=(--region "$region")
 
@@ -160,9 +164,9 @@ main() {
 
   if [[ "$action" == "sleep" ]]; then
     if $min_set || $max_set || $desired_set; then
-      usage_error "--min/--max/--desired are not allowed with 'sleep' (it always targets 0/0/0)"
+      usage_error "--min/--max/--desired are not allowed with 'sleep' (it always sets desired_capacity=0 and leaves min/max unchanged)"
     fi
-    min_val=0 max_val=0 desired_val=0
+    desired_val=0
   else
     if ! $min_set || ! $max_set || ! $desired_set; then
       usage_error "'wake' requires --min, --max, and --desired"
@@ -177,7 +181,7 @@ main() {
     exit 2
   fi
 
-  run_aws_update "$asg_name" "$min_val" "$max_val" "$desired_val" "$profile" "$region" "$dry_run"
+  run_aws_update "$asg_name" "$action" "$min_val" "$max_val" "$desired_val" "$profile" "$region" "$dry_run"
 }
 
 main "$@"

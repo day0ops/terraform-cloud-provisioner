@@ -80,7 +80,7 @@ Use `scripts/eks-node-sleep.sh` to manually control node scaling independent of 
 
 Syntax: `scripts/eks-node-sleep.sh <environment-dir> <cluster-index> <sleep|wake> [options]`
 
-Sleep (no flags needed; always targets min=0, max=0, desired=0):
+Sleep (no flags needed; only sets desired capacity to 0, leaving min/max unchanged):
 ```bash
 scripts/eks-node-sleep.sh environments/eks 0 sleep
 ```

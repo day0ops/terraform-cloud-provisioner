@@ -483,8 +483,8 @@ resource "aws_autoscaling_schedule" "eks_worker_sleep" {
   autoscaling_group_name = aws_autoscaling_group.eks_worker_asg[0].name
   recurrence             = var.node_sleep_cron
   time_zone              = var.node_sleep_timezone
-  min_size               = 0
-  max_size               = 0
+  min_size               = var.eks_min_nodes
+  max_size               = var.eks_max_nodes
   desired_capacity       = 0
 
   lifecycle {
