@@ -56,3 +56,46 @@ Sample variable files live in `examples/`. Use the one that matches your target 
 | `eks-ipv6.tfvars` | `environments/eks-ipv6` | IPv6 dual-stack; bastion enabled by default |
 
 Each example covers required variables and shows optional ones as comments. Copy the relevant file, edit values, then pass it with `-var-file=my.tfvars`.
+
+## Node sleep schedule
+
+**What it does:** Automatically scale EKS worker nodes to zero on a recurring schedule (e.g. after hours or weekends) to save EC2 compute cost, then scale back up at a specified time. The schedule is implemented via Terraform-managed `aws_autoscaling_schedule` resources (`eks_worker_sleep` and `eks_worker_wake`) that act directly on the worker Auto Scaling Group. Use the on-demand script below to manually sleep/wake a cluster outside the schedule.
+
+**Cost caveat:** This saves EC2 compute cost only. It does NOT reduce the EKS control plane fee (billed per cluster regardless of node count) or NAT Gateway charges (still active even with zero nodes).
+
+**Important - affects every environment with EKS, whether or not you use node sleep:** The worker ASG has `lifecycle { ignore_changes = [desired_capacity] }`, unconditionally, so that the sleep schedule and the on-demand script can manage `desired_capacity` without Terraform fighting them on the next apply. One consequence: `eks_nodes` now only sets a cluster's *initial* desired node count. Changing `eks_nodes` and re-applying no longer resizes an already-running cluster. To resize a running cluster's node count going forward, use `scripts/eks-node-sleep.sh <env> <cluster-index> wake --min N --max N --desired N` with your new numbers.
+
+**Prerequisites:** To use the sleep schedule, set `eks_min_nodes = 0` in your tfvars. Terraform enforces this with a precondition, as AWS does not allow `desired_capacity` to drop below `min_size`.
+
+**Variables (available in every environment that includes EKS: `eks`, `multicluster`, `eks-gke`, `eks-rosa`, `aks-eks`):**
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `enable_node_sleep_schedule` | bool | `false` | Enable the recurring sleep schedule |
+| `node_sleep_cron` | string | `"30 18 * * MON-FRI"` | Cron expression (5-field, in `node_sleep_timezone`) to scale nodes to zero |
+| `node_wake_cron` | string | `"0 8 * * MON-FRI"` | Cron expression (5-field, in `node_sleep_timezone`) to scale nodes back up |
+| `node_sleep_timezone` | string | `"UTC"` | IANA time zone for the cron expressions (e.g. `"America/New_York"`) |
+
+**On-demand sleep/wake:**
+
+Use `scripts/eks-node-sleep.sh` to manually control node scaling independent of the schedule.
+
+Syntax: `scripts/eks-node-sleep.sh <environment-dir> <cluster-index> <sleep|wake> [options]`
+
+Sleep (no flags needed; only sets desired capacity to 0, leaving min/max unchanged):
+```bash
+scripts/eks-node-sleep.sh environments/eks 0 sleep
+```
+
+Wake (must supply the same values as your `eks_min_nodes`, `eks_max_nodes`, `eks_nodes` tfvars):
+```bash
+scripts/eks-node-sleep.sh environments/eks 0 wake --min 0 --max 3 --desired 2
+```
+
+Options:
+- `--min N` required for `wake`, rejected for `sleep`
+- `--max N` required for `wake`, rejected for `sleep`
+- `--desired N` required for `wake`, rejected for `sleep`
+- `--profile NAME` AWS CLI profile name
+- `--region NAME` AWS region
+- `--dry-run` print the AWS CLI command instead of executing it

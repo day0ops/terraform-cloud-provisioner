@@ -28,6 +28,11 @@ output "eks_worker_security_group_ids" {
   description = "Worker security group IDs for all EKS clusters"
 }
 
+output "eks_worker_asg_names" {
+  value       = [for m in module.eks[*] : m.worker_asg_name]
+  description = "Worker node Auto Scaling Group names, per cluster (for scheduled/on-demand node sleep)"
+}
+
 output "rosa_kubeconfig" {
   value       = join(":", module.rosa[*].kubeconfig_path)
   description = "Paths to ROSA kubeconfig files"

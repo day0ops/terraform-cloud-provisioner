@@ -62,3 +62,8 @@ output "workload_storage_identity_annotation_value" {
   value       = try(aws_iam_role.workload_storage_role[0].arn, null)
   description = "IRSA role ARN to annotate the Kubernetes ServiceAccount with, null if not enabled"
 }
+
+output "worker_asg_name" {
+  value       = try(aws_autoscaling_group.eks_worker_asg[0].name, null)
+  description = "Name of the worker node Auto Scaling Group (for scheduled/on-demand node sleep)"
+}

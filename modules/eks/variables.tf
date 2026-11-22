@@ -108,6 +108,32 @@ variable "kubernetes_version" {
   default     = "1.34"
 }
 
+# -- Node sleep schedule
+
+variable "enable_node_sleep_schedule" {
+  description = "Scale worker nodes to zero on a recurring schedule to save cost when the cluster is idle (Default: `false`)"
+  type        = bool
+  default     = false
+}
+
+variable "node_sleep_cron" {
+  description = "Cron expression (5-field, in `node_sleep_timezone`) for when worker nodes scale to zero (Default: `30 18 * * MON-FRI`)"
+  type        = string
+  default     = "30 18 * * MON-FRI"
+}
+
+variable "node_wake_cron" {
+  description = "Cron expression (5-field, in `node_sleep_timezone`) for when worker nodes scale back up to `eks_nodes`/`eks_min_nodes`/`eks_max_nodes` (Default: `0 8 * * MON-FRI`)"
+  type        = string
+  default     = "0 8 * * MON-FRI"
+}
+
+variable "node_sleep_timezone" {
+  description = "IANA time zone for `node_sleep_cron` / `node_wake_cron` (Default: `UTC`)"
+  type        = string
+  default     = "UTC"
+}
+
 # -- Tagging and labeling
 
 variable "owner" {

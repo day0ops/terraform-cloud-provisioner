@@ -468,9 +468,43 @@ resource "aws_autoscaling_group" "eks_worker_asg" {
     }
   }
 
+  # Ignore desired_capacity changes so the node-sleep schedule and on-demand script can manage it independently,
+  # even when enable_node_sleep_schedule is false (Terraform's ignore_changes cannot be conditional).
   lifecycle {
     create_before_destroy = true
+    ignore_changes        = [desired_capacity]
   }
+}
+
+resource "aws_autoscaling_schedule" "eks_worker_sleep" {
+  count = var.enable_node_sleep_schedule ? local.count : 0
+
+  scheduled_action_name  = "${local.cluster_name}-sleep"
+  autoscaling_group_name = aws_autoscaling_group.eks_worker_asg[0].name
+  recurrence             = var.node_sleep_cron
+  time_zone              = var.node_sleep_timezone
+  min_size               = var.eks_min_nodes
+  max_size               = var.eks_max_nodes
+  desired_capacity       = 0
+
+  lifecycle {
+    precondition {
+      condition     = var.eks_min_nodes == 0
+      error_message = "eks_min_nodes must be 0 when enable_node_sleep_schedule is true (AWS will not allow desired_capacity below min_size)."
+    }
+  }
+}
+
+resource "aws_autoscaling_schedule" "eks_worker_wake" {
+  count = var.enable_node_sleep_schedule ? local.count : 0
+
+  scheduled_action_name  = "${local.cluster_name}-wake"
+  autoscaling_group_name = aws_autoscaling_group.eks_worker_asg[0].name
+  recurrence             = var.node_wake_cron
+  time_zone              = var.node_sleep_timezone
+  min_size               = var.eks_min_nodes
+  max_size               = var.eks_max_nodes
+  desired_capacity       = var.eks_nodes
 }
 
 locals {
