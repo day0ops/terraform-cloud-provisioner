@@ -158,3 +158,29 @@ variable "eks_subnets" {
   type        = number
   default     = 2
 }
+
+# -- Node sleep schedule
+
+variable "enable_node_sleep_schedule" {
+  description = "Scale worker nodes to zero on a recurring schedule to save cost when idle"
+  type        = bool
+  default     = false
+}
+
+variable "node_sleep_cron" {
+  description = "Cron expression for when worker nodes scale to zero"
+  type        = string
+  default     = "30 18 * * MON-FRI"
+}
+
+variable "node_wake_cron" {
+  description = "Cron expression for when worker nodes scale back up"
+  type        = string
+  default     = "0 8 * * MON-FRI"
+}
+
+variable "node_sleep_timezone" {
+  description = "IANA time zone for node_sleep_cron / node_wake_cron"
+  type        = string
+  default     = "UTC"
+}
