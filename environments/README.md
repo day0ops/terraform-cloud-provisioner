@@ -63,9 +63,11 @@ Each example covers required variables and shows optional ones as comments. Copy
 
 **Cost caveat:** This saves EC2 compute cost only. It does NOT reduce the EKS control plane fee (billed per cluster regardless of node count) or NAT Gateway charges (still active even with zero nodes).
 
+**Important - affects every environment with EKS, whether or not you use node sleep:** The worker ASG has `lifecycle { ignore_changes = [desired_capacity] }`, unconditionally, so that the sleep schedule and the on-demand script can manage `desired_capacity` without Terraform fighting them on the next apply. One consequence: `eks_nodes` now only sets a cluster's *initial* desired node count. Changing `eks_nodes` and re-applying no longer resizes an already-running cluster. To resize a running cluster's node count going forward, use `scripts/eks-node-sleep.sh <env> <cluster-index> wake --min N --max N --desired N` with your new numbers.
+
 **Prerequisites:** To use the sleep schedule, set `eks_min_nodes = 0` in your tfvars. Terraform enforces this with a precondition, as AWS does not allow `desired_capacity` to drop below `min_size`.
 
-**Variables (EKS environment only):**
+**Variables (available in every environment that includes EKS: `eks`, `multicluster`, `eks-gke`, `eks-rosa`, `aks-eks`):**
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
@@ -87,7 +89,7 @@ scripts/eks-node-sleep.sh environments/eks 0 sleep
 
 Wake (must supply the same values as your `eks_min_nodes`, `eks_max_nodes`, `eks_nodes` tfvars):
 ```bash
-scripts/eks-node-sleep.sh environments/eks 0 wake --min 1 --max 3 --desired 2
+scripts/eks-node-sleep.sh environments/eks 0 wake --min 0 --max 3 --desired 2
 ```
 
 Options:
