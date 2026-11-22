@@ -27,3 +27,8 @@ output "gke_cluster_name" {
   value       = [for c in module.gke[*].k8s_cluster_name : c]
   description = "GKE cluster names"
 }
+
+output "eks_worker_asg_names" {
+  value       = [for m in module.eks[*] : m.worker_asg_name]
+  description = "Worker node Auto Scaling Group names, per cluster (for scheduled/on-demand node sleep)"
+}
