@@ -47,6 +47,11 @@ module "eks" {
   eks_subnets        = var.eks_subnets
   kubernetes_version = coalesce(var.kubernetes_version, module.defaults.kubernetes_version)
 
+  enable_node_sleep_schedule = var.enable_node_sleep_schedule
+  node_sleep_cron            = var.node_sleep_cron
+  node_wake_cron             = var.node_wake_cron
+  node_sleep_timezone        = var.node_sleep_timezone
+
   owner   = var.owner
   team    = var.team
   purpose = var.purpose
