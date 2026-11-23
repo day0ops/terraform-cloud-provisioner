@@ -987,7 +987,10 @@ data "aws_iam_policy_document" "workload_storage_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${replace(aws_iam_openid_connect_provider.eks_oidc_provider[0].url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:${var.workload_storage_ksa_namespace}:${var.workload_storage_ksa_name}"]
+      values = [
+        for ksa in var.workload_storage_ksa_name :
+        "system:serviceaccount:${var.workload_storage_ksa_namespace}:${ksa}"
+      ]
     }
   }
 }

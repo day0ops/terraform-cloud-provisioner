@@ -140,9 +140,9 @@ variable "workload_storage_ksa_namespace" {
 }
 
 variable "workload_storage_ksa_name" {
-  description = "Name of the Kubernetes ServiceAccount to bind the storage IRSA role to"
-  type        = string
-  default     = ""
+  description = "Names of the Kubernetes ServiceAccounts to bind the storage IRSA role to"
+  type        = list(string)
+  default     = []
 }
 
 variable "workload_storage_force_destroy" {
