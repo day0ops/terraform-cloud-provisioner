@@ -17,9 +17,9 @@ variable "workload_storage_ksa_namespace" {
 }
 
 variable "workload_storage_ksa_name" {
-  description = "Name of the Kubernetes ServiceAccount to bind the storage IRSA role to"
-  type        = string
-  default     = ""
+  description = "Names of the Kubernetes ServiceAccounts to bind the storage IRSA role to -- every workload that touches the bucket directly needs its own binding (e.g. Agent Substrate's atelet AND ate-api-server, which independently manages golden-snapshot Tags)"
+  type        = list(string)
+  default     = []
 }
 
 variable "workload_storage_force_destroy" {
